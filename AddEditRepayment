@@ -1,0 +1,293 @@
+import React, { useState, useContext, useEffect, useCallback } from 'react'
+import { useApi } from '../../../util'
+import { NotificationMsg, DangerMsg } from '../../../components/NotificationMsg'
+import {
+    CButton, CModal, CModalBody, CModalFooter, CDataTable, CModalHeader, CModalTitle, CRow,
+    CFormGroup, CLabel, CInput, CInvalidFeedback, CTooltip, CCol, CInputGroupPrepend, CInputGroup, CInputGroupText, CTextarea
+} from '@coreui/react'
+import { date } from 'joi'
+
+const EditRepayment = ({ modal, toggle, sentProps, Repayment, getData,items }) => {
+
+
+    const [rep, setrep] = useState([{
+        Recept_name: '',
+        amount: '',
+        rePayment_amount: '',
+        remainder: '',
+        total_rePayment_amount: '',
+        isPaid: false,
+        notes: '',
+        noChecks: '',
+        dtDoc: '',
+        noDaily: '',
+        dtDaily: ''
+    }])
+    const modalOpen = () => {
+        // !sentProps 
+
+        // sentProps && seteditbutton(true)
+        // sentProps && GetDataEdit()
+    }
+    const d = new Date();
+    const [year, setyear] = useState(d.getFullYear())
+    const [month, setmonth] = useState(d.getMonth())
+    const [noDaily, setnoDaily] = useState();
+    const getValue = (value) => {
+        let monthYear = value.split("-");
+        monthYear && setmonth(monthYear[1]);
+        monthYear && setyear(monthYear[0]);
+        console.log('date', monthYear)
+    }
+    const total_rePayment_input = rep.reduce((sum, current) => {
+        return sum + parseFloat(current.rePayment_amount)
+    }, 0)
+
+
+    const GetRepaymentForEdit = (async () => {
+
+        try {
+            let { success, data } = await api('GET', `api/analysis/update/Check_details_id/${sentProps}`)
+            if (!success) {
+                DangerMsg("اشعارات التسديد", "خطأ في تحميل البيانات")
+                return
+            }
+            setrep([...data])
+            console.log('repaymentForEdit', data)
+
+        } catch (err) {
+            DangerMsg("اشعارات التسديد", "خطأ في تحميل البيانات")
+            console.error(err)
+        }
+
+    })
+
+    useEffect(() => { GetRepaymentForEdit() }, [sentProps])
+
+
+    const EditAnalysis = (async () => {
+        if (total_rePayment_input > rep[0].amount)
+
+            return DangerMsg("مجموع التسديد اكبر من مبلغ المنح", "خطأ في تعديل البيانات")
+        //    if (total_rePayment_input>rep[0].remainder)
+        //       return DangerMsg("مجموع التسديد اكبر من المتبقي", "خطأ في اضافة البيانات")
+
+        try {
+            let { success } = await api("PUT", `api/analysis`, rep)
+            if (!success) {
+                DangerMsg("مشكلة في تعديل التسديد", "خطأ في تعديل البيانات")
+                return
+            }
+            NotificationMsg("التسديد", "تم التعديل بنجاح")
+            GetRepaymentForEdit()
+            getData()
+        }
+        catch (err) {
+            DangerMsg("اشعارات مستند القيد", "خطأ في تعديل البيانات")
+            console.error(err)
+
+        }
+
+
+    })
+
+    const api = useApi()
+
+    return (
+        <>
+            <CModal
+                style={{ maxWidth: '1400px' }}
+                onOpened={() => modalOpen()}
+                show={modal}
+                onClose={() => modal}
+                size="xl"
+                centered={true}
+                onClosed={() => modal}
+                scrollable
+                fade
+            >
+                <CModalHeader closeButton>
+                    <CModalTitle>{'تعديل تسديد السلف'}</CModalTitle>
+
+                </CModalHeader>
+                <CModalBody style={{ maxWidth: '1400px' }}>
+                <CRow>
+
+<CCol sm='12' id='analysis'>
+
+    <CLabel htmlFor='Recept_name'> { items.Recept_name}</CLabel>
+</CCol>
+</CRow>
+<CRow>
+                        <CCol sm='4' id='analysis'>
+                            <CLabel htmlFor='amount' style={{ fontWeight: 'bold', fontSize: 'small' }}>المبلغ </CLabel>
+                        </CCol>
+                        <CCol sm='4' id='analysis'>
+                            <CLabel htmlFor='amount' style={{ fontWeight: 'bold', fontSize: 'small' }}>مجموع التسديد </CLabel>
+                        </CCol>
+                        <CCol sm='4' id='analysis'>
+                            <CLabel htmlFor='remainder' style={{ fontWeight: 'bold', fontSize: 'small' }}>المتبقي </CLabel>
+                        </CCol>
+                    </CRow>
+                    <CRow>
+                        <CCol sm='4' id='analysis'>
+
+                            <CLabel htmlFor='amount'> {(items.amount).toLocaleString('ar-u-nu-arab')}</CLabel>
+
+                        </CCol>
+                        <CCol sm='4' id='analysis'>
+
+                            <CLabel htmlFor='total_rePayment_amount'> {(items.total_rePayment_amount).toLocaleString('ar-u-nu-arab')}</CLabel>
+
+                        </CCol>
+                        <CCol sm='4' id='analysis'>
+
+                            <CLabel style={{ textAlign: 'center', width: '100%' }}
+
+                            >
+                                {(((items.amount - items.total_rePayment_amount) - rep[0].rePayment_amount) <= -1 ? 'الرقم بالسالب' : ((items.amount - items.total_rePayment_amount) - rep[0].rePayment_amount))
+                                }
+                            </CLabel>
+
+
+                        </CCol>
+     
+                    </CRow>
+                    <br></br>
+                    <CRow>
+
+
+                        <CCol sm='1' id='analysis'>
+                            <CLabel htmlFor='index' style={{ fontWeight: 'bold', fontSize: 'small' }}> ت</CLabel>
+                        </CCol>
+
+
+                        <CCol sm='1' id='analysis'>
+                            <CLabel htmlFor='noDaily' style={{ fontWeight: 'bold', fontSize: 'small' }}> رقم اليومية </CLabel>
+                        </CCol>
+                        <CCol sm='3' id='analysis'>
+                            <CLabel htmlFor='dtDaily' style={{ fontWeight: 'bold', fontSize: 'small' }}> تاريخ اليومية  </CLabel>
+                        </CCol>
+                        <CCol sm='1' id='analysis'>
+                            <CLabel htmlFor='noDoc||norDoc' style={{ fontWeight: 'bold', fontSize: 'small' }}> رقم المستند </CLabel>
+                        </CCol>
+                        <CCol sm='3' id='analysis'>
+                            <CLabel htmlFor='dtDoc' style={{ fontWeight: 'bold', fontSize: 'small' }}> تاريخ المستند </CLabel>
+                        </CCol>
+
+                      
+                        <CCol sm='2' id='analysis'>
+                            <CLabel htmlFor='rePayment_amount' style={{ fontWeight: 'bold', fontSize: 'small' }}>مبلغ التسديد </CLabel>
+                        </CCol>
+                     
+                    </CRow>
+             
+
+                    {(rep).map((item, index) =>
+                        <>
+                            <CRow className={'analysis_row'}>
+
+                                <CCol sm='1' width={'3px'}   >
+
+
+
+                                    <CLabel htmlFor='index'> {index + 1}</CLabel>
+
+                                </CCol>
+
+                                <CCol sm='1' >
+
+                                    <CLabel htmlFor='noDaily'> {parseInt(item.noDaily).toLocaleString('ar-u-nu-arab')}</CLabel>
+
+                                </CCol>
+                                <CCol sm='3' >
+
+                                    <CLabel htmlFor='dtDaily'> {(item.dtDaily)
+                                    }</CLabel>
+
+                                </CCol>
+                                <CCol sm='1' >
+
+                                    <CLabel htmlFor='nordoc||noDoc'> {(item.noDoc) ? ((item.noDoc)) : ((item.nordoc))}</CLabel>
+                                    {
+                                    }
+                                </CCol>
+                                <CCol sm='3' >
+
+                                    <CLabel htmlFor='dtDoc'> {item.dtDoc ? item.dtDoc : ''}</CLabel>
+
+                                </CCol>
+            
+              
+                                <CCol sm='2' style={{ padding: '4px 4px' }} >
+
+
+                                    {/* اصغر من المتبقي و اصغر من المبلغ الكلي  */}
+                                    <CInput
+
+                                        type='number'
+                                        value={item.rePayment_amount <= -1 ? item.rePayment_amount = 0 : item.rePayment_amount}
+                                        // :item.rePayment_amount > (item.amount) ? item.rePayment_amount = 0  : item.rePayment_amount <= -1 ? item.rePayment_amount = 0: item.rePayment_amount} 
+                                        onChange={
+                                            (e) => {
+                                                setrep(old => {
+                                                    old[index].rePayment_amount = e.target.value
+                                                    return [...old]
+                                                })
+                                            }
+
+                                        }
+
+
+
+                                    ></CInput>
+
+                                </CCol>
+                           
+
+                                <CCol sm='12' id='analysis'>
+                                    <CTextarea
+                                        style={{ background: '#B2B1B9', color: 'white' }}
+                                        type='number'
+                                        value={item.notes}
+                                        onChange={
+                                            (e) => {
+                                                setrep(old => {
+                                                    old[index].notes = e.target.value
+                                                    return [...old]
+                                                })
+                                            }
+
+                                        }
+
+
+
+                                    ></CTextarea>
+
+
+
+                                </CCol>
+
+                            </CRow>
+                        </>
+                    )
+                    }
+
+                    <br></br>
+
+                    <CButton id='border-btn' style={{ border: '1px solid #00bcd4' }}
+                        size='lg'
+                        block onClick={() => { EditAnalysis() }}>تعديــــــل</CButton>
+
+
+
+                </CModalBody>
+            </CModal>
+        </>
+    )
+}
+export default EditRepayment
+
+
+
+
